@@ -1,0 +1,17 @@
+[package]
+name = "rolly"
+version = "0.1.0"
+authors = ["maybe-hello-world <maybe.hello.world@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "rolly"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rolly"
+path = "src/main.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
