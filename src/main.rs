@@ -11,6 +11,11 @@ fn faulty_fn(x: i32) -> Result<i32, i32> {
     Err(x)
 }
 
+fn random_fn() -> i32 {
+    println!("Random here!");
+    42 // truly random chosen number
+}
+
 
 fn main() {
 
@@ -22,7 +27,7 @@ fn main() {
     retry_policy.execute(|| faulty_fn(33));
     retry_policy.execute(|| ok_fn(42));
 
-    println!("");
+    println!();
 
     // retry any time err is received
     let retry_policy = PolicyBuilder::new()
@@ -31,5 +36,14 @@ fn main() {
 
     retry_policy.execute(|| faulty_fn(33));
     retry_policy.execute(|| ok_fn(42));
+
+    println!();
+
+    let retry_policy = PolicyBuilder::new()
+        .handle(|&x| x < 0)
+        .handle(|&x| x == 42)
+        .retry(3);
+
+    retry_policy.execute(|| random_fn());
 
 }

@@ -1,31 +1,31 @@
 pub mod traits {
-    pub trait Policy<O, R, E>
+    pub trait Policy<O, R>
     {
-        fn execute(&self, operation: O) -> Result<R, E>;
+        fn execute(&self, operation: O) -> R;
     }
 }
 
 
 pub mod retry {
     use super::traits::Policy;
-    use std::rc::Rc;
+    use std::sync::Arc;
 
-    pub struct RetryPolicy<R, E> {
-        pub(in crate) matching_operations: Vec<Rc<dyn Fn(&Result<R, E>) -> bool>>,
+    pub struct RetryPolicy<'l, R> {
+        pub(in crate) matchers: Vec<Arc<dyn Fn(&R) -> bool + 'l>>,
         pub(in crate) count: u32
     }
 
-    impl<O, R, E> Policy<O, R, E> for RetryPolicy<R, E>
+    impl<'l, O, R> Policy<O, R> for RetryPolicy<'l, R>
         where
-            O: Fn() -> Result<R, E>
+            O: Fn() -> R
     {
-        fn execute(&self, operation: O) -> Result<R, E> {
+        fn execute(&self, operation: O) -> R {
             for _ in 0..self.count {
                 let result = operation();
-                for op in self.matching_operations.iter() {
-                    if !op(&result) {
-                        return result
-                    }
+
+                // if all matchers return false -> return result
+                if !self.matchers.iter().any(|op| op(&result)) {
+                    return result
                 }
             }
             operation()
@@ -35,21 +35,45 @@ pub mod retry {
 
 pub mod builder {
     use super::retry::RetryPolicy;
-    use std::rc::Rc;
+    use std::sync::Arc;
 
-    pub struct PolicyBuilder<R, E> {
-        pub(in crate) matching_operations: Vec<Rc<dyn Fn(&Result<R, E>) -> bool>>
+    pub struct PolicyBuilder<'l, R> {
+        pub(in crate) matchers: Vec<Arc<dyn Fn(&R) -> bool + 'l>>
     }
 
-    impl<R, E> PolicyBuilder<R, E> {
-        pub fn new() -> PolicyBuilder<R, E> {
+    impl<'l, R> PolicyBuilder<'l, R> {
+        pub fn new() -> PolicyBuilder<'l, R> {
             PolicyBuilder {
-                matching_operations: vec![]
+                matchers: vec![]
             }
         }
 
-        pub fn handle_err(&mut self) -> &mut PolicyBuilder<R, E> {
-            self.matching_operations.push(Rc::new(|result| {
+        pub fn handle_all(mut self) -> PolicyBuilder<'l, R> {
+            self.matchers.push(Arc::new(|_r| true));
+            self
+        }
+
+        pub fn handle<F>(mut self, predicate: F) -> PolicyBuilder<'l, R>
+        where F: Fn(&R) -> bool + 'l {
+            self.matchers.push(Arc::new(predicate));
+            self
+        }
+
+        pub fn retry(mut self, count: u32) -> RetryPolicy <'l, R> {
+            if self.matchers.is_empty() {
+                self = self.handle_all();
+            }
+
+            RetryPolicy {
+                matchers: self.matchers.clone(),
+                count
+            }
+        }
+    }
+
+    impl<'l, X, Y> PolicyBuilder<'l, Result<X, Y>> {
+        pub fn handle_err(mut self) -> PolicyBuilder<'l, Result<X, Y>> {
+            self.matchers.push(Arc::new(|result| {
                 match result {
                     Ok(_) => false,
                     Err(_) => true
@@ -58,25 +82,14 @@ pub mod builder {
             self
         }
 
-        pub fn handle_ok(&mut self) -> &mut PolicyBuilder<R, E> {
-            self.matching_operations.push(Rc::new(|result| {
+        pub fn handle_ok(mut self) -> PolicyBuilder<'l, Result<X, Y>>{
+            self.matchers.push(Arc::new(|result| {
                 match result {
                     Ok(_) => true,
                     Err(_) => false
                 }
             }));
             self
-        }
-
-        pub fn retry(&mut self, count: u32) -> RetryPolicy<R, E> {
-            if self.matching_operations.is_empty() {
-                self.handle_err();
-            }
-
-            RetryPolicy {
-                matching_operations: self.matching_operations.clone(),
-                count
-            }
         }
     }
 }
