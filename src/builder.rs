@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use crate::retry::{RetryForeverPolicy, RetryPolicy};
 
@@ -24,16 +25,16 @@ impl<'l, R> PolicyBuilder<'l, R> {
         self
     }
 
-    pub fn retry(&self, count: u32) -> RetryPolicy<'l, R> {
+    pub fn retry(&self, count: usize) -> RetryPolicy<'l, R> {
         self.retry_with_action(count, |_, _| ())
     }
 
-    pub fn retry_with_action<F>(&self, count: u32, action: F) -> RetryPolicy<'l, R>
-        where F: Fn(R, u32) -> () + 'l {
+    pub fn retry_with_action<F>(&self, count: usize, action: F) -> RetryPolicy<'l, R>
+        where F: Fn(R, usize) -> () + 'l {
         RetryPolicy {
             matchers: self.matchers.clone(),
-            count,
             action: Arc::new(action),
+            durations: vec![Duration::from_nanos(0); count],
         }
     }
 
@@ -46,6 +47,33 @@ impl<'l, R> PolicyBuilder<'l, R> {
         RetryForeverPolicy {
             matchers: self.matchers.clone(),
             action: Arc::new(action),
+            duration: Duration::from_nanos(0),
+        }
+    }
+
+    pub fn wait_and_retry(&self, durations: Vec<Duration>) -> RetryPolicy<'l, R> {
+        self.wait_and_retry_with_action(durations, |_, _| ())
+    }
+
+    pub fn wait_and_retry_with_action<F>(&self, durations: Vec<Duration>, action: F) -> RetryPolicy<'l, R>
+        where F: Fn(R, usize) -> () + 'l {
+        RetryPolicy {
+            matchers: self.matchers.clone(),
+            action: Arc::new(action),
+            durations,
+        }
+    }
+
+    pub fn wait_and_retry_forever(&self, duration: Duration) -> RetryForeverPolicy<'l, R> {
+        self.wait_and_retry_forever_with_action(duration, |_| ())
+    }
+
+    pub fn wait_and_retry_forever_with_action<F>(&self, duration: Duration, action: F) -> RetryForeverPolicy<'l, R>
+        where F: Fn(R) -> () + 'l {
+        RetryForeverPolicy {
+            matchers: self.matchers.clone(),
+            action: Arc::new(action),
+            duration,
         }
     }
 }

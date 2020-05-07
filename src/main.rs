@@ -54,10 +54,10 @@ fn main() {
         );
     retry_policy.execute(|| random_fn());
 
-    let retry_policy = PolicyBuilder::new()
-        .handle(|&x| x == 42)
+    let _retry_policy = PolicyBuilder::new()
+        .handle(|&x: &i32| x == 42)
         .retry_forever();
 
     // Are you gonna live forever?
-    // retry_policy.execute(|| random_fn());
+    // _retry_policy.execute(|| random_fn());
 }
