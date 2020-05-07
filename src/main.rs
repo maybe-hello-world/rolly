@@ -54,7 +54,6 @@ fn main() {
         );
     retry_policy.execute(|| random_fn());
 
-    // do not execute in the name of the sanity
     let retry_policy = PolicyBuilder::new()
         .handle(|&x| x == 42)
         .retry_forever();
