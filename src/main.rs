@@ -54,6 +54,21 @@ fn main() {
         );
     retry_policy.execute(|| random_fn());
 
+    println!();
+
+    // action is FnMut, so you can mutate outside objects
+    // but you need to drop retry_policy as it mutably borrow
+    let mut history_vec = vec![];
+    PolicyBuilder::new()
+        .handle_all()
+        .retry_with_action(3, |x, retry_counter| {
+            history_vec.push((x, retry_counter))
+        })
+        .execute(|| random_fn());
+
+    println!("{:?}", history_vec);
+    println!();
+
     let _retry_policy = PolicyBuilder::new()
         .handle(|&x: &i32| x == 42)
         .retry_forever();
