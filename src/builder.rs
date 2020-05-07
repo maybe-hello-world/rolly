@@ -29,7 +29,7 @@ impl<'l, R> PolicyBuilder<'l, R> {
     }
 
     pub fn retry_with_action<F>(&self, count: u32, action: F) -> RetryPolicy<'l, R>
-    where F: Fn(R, u32) -> () + 'static {    // TODO: can we change static to smth?
+    where F: Fn(R, u32) -> () + 'l {
         RetryPolicy {
             matchers: self.matchers.clone(),
             count,

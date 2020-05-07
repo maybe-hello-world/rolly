@@ -1,5 +1,7 @@
-use rolly::PolicyBuilder;
+use std::collections::HashSet;
+
 use rolly::Policy;
+use rolly::PolicyBuilder;
 
 fn ok_fn(x: i32) -> Result<i32, i32> {
     println!("I always return Ok");
@@ -39,13 +41,16 @@ fn main() {
 
     println!();
 
+    let values: HashSet<i32> = vec![1, 3, 5, 7, 42].drain(..).collect();
     let retry_policy = PolicyBuilder::new()
-        .handle(|&x| x == 42)
+        .handle(|&x| values.contains(&x))
         .retry_with_action(
             3,
-            |x, retry_count|
-                println!("Received answer {}, retry count: {}", x, retry_count),
+            |x, retry_count| {
+                println!("Answer {} found in hashset {:?}, retry count: {}",
+                         x, &values, retry_count
+                )
+            },
         );
-
     retry_policy.execute(|| random_fn());
 }
