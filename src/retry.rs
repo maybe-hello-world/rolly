@@ -22,7 +22,7 @@ impl<'l, O, R> Policy<O, R> for RetryPolicy<'l, R>
             if !self.matchers.iter().any(|op| op(&result)) {
                 return result;
             } else {
-                self.action.lock().unwrap().deref_mut()(result, retry_count);
+                self.action.lock().unwrap().deref_mut()(result, retry_count + 1);
                 if dur.as_nanos() > 0 {
                     std::thread::sleep(*dur);
                 }
