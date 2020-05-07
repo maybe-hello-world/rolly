@@ -1,5 +1,5 @@
 use rolly::PolicyBuilder;
-use rolly::traits::Policy;
+use rolly::Policy;
 
 fn ok_fn(x: i32) -> Result<i32, i32> {
     println!("I always return Ok");
@@ -24,8 +24,8 @@ fn main() {
         .handle_ok()
         .retry(3);
 
-    retry_policy.execute(|| faulty_fn(33));
-    retry_policy.execute(|| ok_fn(42));
+    retry_policy.execute(|| faulty_fn(33)).err().unwrap();
+    retry_policy.execute(|| ok_fn(42)).unwrap();
 
     println!();
 
@@ -34,13 +34,12 @@ fn main() {
         .handle_err()
         .retry(3);
 
-    retry_policy.execute(|| faulty_fn(33));
-    retry_policy.execute(|| ok_fn(42));
+    retry_policy.execute(|| faulty_fn(33)).err().unwrap();
+    retry_policy.execute(|| ok_fn(42)).unwrap();
 
     println!();
 
     let retry_policy = PolicyBuilder::new()
-        .handle(|&x| x < 0)
         .handle(|&x| x == 42)
         .retry(3);
 
