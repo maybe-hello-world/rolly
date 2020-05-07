@@ -59,11 +59,7 @@ pub mod builder {
             self
         }
 
-        pub fn retry(mut self, count: u32) -> RetryPolicy <'l, R> {
-            if self.matchers.is_empty() {
-                self = self.handle_all();
-            }
-
+        pub fn retry(&self, count: u32) -> RetryPolicy <'l, R> {
             RetryPolicy {
                 matchers: self.matchers.clone(),
                 count

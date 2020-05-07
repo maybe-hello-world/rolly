@@ -45,5 +45,4 @@ fn main() {
         .retry(3);
 
     retry_policy.execute(|| random_fn());
-
 }
