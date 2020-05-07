@@ -25,9 +25,15 @@ impl<'l, R> PolicyBuilder<'l, R> {
     }
 
     pub fn retry(&self, count: u32) -> RetryPolicy<'l, R> {
+        self.retry_with_action(count, |_, _| ())
+    }
+
+    pub fn retry_with_action<F>(&self, count: u32, action: F) -> RetryPolicy<'l, R>
+    where F: Fn(R, u32) -> () + 'static {    // TODO: can we change static to smth?
         RetryPolicy {
             matchers: self.matchers.clone(),
             count,
+            action: Arc::new(action),
         }
     }
 }

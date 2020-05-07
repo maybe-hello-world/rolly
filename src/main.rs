@@ -41,7 +41,11 @@ fn main() {
 
     let retry_policy = PolicyBuilder::new()
         .handle(|&x| x == 42)
-        .retry(3);
+        .retry_with_action(
+            3,
+            |x, retry_count|
+                println!("Received answer {}, retry count: {}", x, retry_count),
+        );
 
     retry_policy.execute(|| random_fn());
 }

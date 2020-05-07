@@ -5,6 +5,7 @@ use crate::traits::Policy;
 pub struct RetryPolicy<'l, R> {
     pub(in crate) matchers: Vec<Arc<dyn Fn(&R) -> bool + 'l>>,
     pub(in crate) count: u32,
+    pub(in crate) action: Arc<dyn Fn(R, u32) -> ()>,
 }
 
 impl<'l, O, R> Policy<O, R> for RetryPolicy<'l, R>
@@ -12,12 +13,14 @@ impl<'l, O, R> Policy<O, R> for RetryPolicy<'l, R>
         O: Fn() -> R
 {
     fn execute(&self, operation: O) -> R {
-        for _ in 0..self.count {
+        for retry_count in 0..self.count {
             let result = operation();
 
             // if all matchers return false -> return result
             if !self.matchers.iter().any(|op| op(&result)) {
                 return result;
+            } else {
+                (self.action)(result, retry_count);
             }
         }
         operation()
